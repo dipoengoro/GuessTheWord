@@ -1,6 +1,7 @@
 package id.dipoengoro.guesstheword.screens.game
 
 import android.os.Bundle
+import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,34 +15,39 @@ import id.dipoengoro.guesstheword.screens.game.GameViewModel.Companion.DEFAULT_S
 
 class GameFragment : Fragment() {
 
+    private lateinit var viewModel: GameViewModel
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        viewModel = ViewModelProvider(this)[GameViewModel::class.java]
         val binding: GameFragmentBinding = DataBindingUtil.inflate(
             inflater,
             R.layout.game_fragment,
             container,
             false
         )
-        val viewModel = ViewModelProvider(this)[GameViewModel::class.java]
-        binding.correctButton.setOnClickListener {
-            viewModel.onCorrect()
+        viewModel.apply {
+            eventGameFinish.observe(viewLifecycleOwner) {
+                if (it) {
+                    findNavController(this@GameFragment)
+                        .navigate(
+                            GameFragmentDirections.actionGameFragmentToScoreFragment(
+                                this.score.value ?: DEFAULT_SCORE
+                            )
+                        )
+                    this.onGameFinishComplete()
+                }
+            }
         }
-        binding.skipButton.setOnClickListener {
-            viewModel.onSkip()
+        binding.apply {
+            gameViewModel = viewModel
+            gameFragment = this@GameFragment
+            lifecycleOwner = this@GameFragment
+            return root
         }
-        viewModel.score.observe(viewLifecycleOwner) {
-            binding.scoreText.text = it.toString()
-        }
-        viewModel.word.observe(viewLifecycleOwner) {
-            binding.wordText.text = it
-        }
-        viewModel.eventGameFinish.observe(viewLifecycleOwner) {
-            if (it) findNavController(this)
-                    .navigate(GameFragmentDirections
-                        .actionGameFragmentToScoreFragment(viewModel.score.value ?: DEFAULT_SCORE))
-        }
-        return binding.root
     }
+
+    fun formatTime(time: Long): String = DateUtils.formatElapsedTime(time)
 }
