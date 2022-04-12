@@ -1,10 +1,14 @@
 package id.dipoengoro.guesstheword.screens.game
 
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.getSystemService
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -40,14 +44,28 @@ class GameFragment : Fragment() {
                     this.onGameFinishComplete()
                 }
             }
+            eventBuzz.observe(viewLifecycleOwner) {
+                if(it != GameViewModel.BuzzType.NO_BUZZ) {
+                    buzz(it.pattern)
+                    onBuzzComplete()
+                }
+            }
         }
         binding.apply {
             gameViewModel = viewModel
-            gameFragment = this@GameFragment
-            lifecycleOwner = this@GameFragment
+            lifecycleOwner = viewLifecycleOwner
             return root
         }
     }
 
-    fun formatTime(time: Long): String = DateUtils.formatElapsedTime(time)
+    private fun buzz(pattern: LongArray) {
+        val buzzer = requireActivity().getSystemService<Vibrator>()
+        buzzer?.let {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                buzzer.vibrate(VibrationEffect.createWaveform(pattern, -1))
+            } else {
+                buzzer.vibrate(pattern, -1)
+            }
+        }
+    }
 }
